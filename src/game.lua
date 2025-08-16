@@ -68,6 +68,14 @@ end
 function game:update(dt)
     world:update(dt)
     self:syncPhysics()
+    if draggingBall then
+        local mx, my = love.mouse.getPosition()
+        local dx = mx - ball.x
+        local dy = my - ball.y
+        local distance = math.sqrt(dx*dx + dy*dy)
+        rangeVal = math.max(0, math.min(1, distance / 1500)) -- Normalize distance to a range of 0 to 1
+        print(rangeVal)
+    end
 end
 
 function game:syncPhysics()
@@ -92,7 +100,7 @@ function game:draw()
         ball.img:getHeight()/2)                    
 
     if draggingBall then
-        love.graphics.setColor(1 - rangeVal, 0, rangeVal)
+        love.graphics.setColor(1 - rangeVal, rangeVal, 0)
         local mx, my = love.mouse.getPosition()
         love.graphics.line(mx, my, ball.x, ball.y)
         love.graphics.circle("line", mx, my, 10)
@@ -106,8 +114,7 @@ function game:mousepressed(x, y, button)
         local dx = x - ball.x
         local dy = y - ball.y
         local distance = math.sqrt(dx*dx + dy*dy)
-        rangeVal = math.max(0, math.min(1, distance / 100)) -- Normalize distance to a range of 0 to 1
-        print(rangeVal)
+
         if distance <= ball.shape:getRadius() then
             draggingBall = true
         end
