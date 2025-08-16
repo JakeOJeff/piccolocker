@@ -3,6 +3,7 @@ local game = {}
 world = nil
 wW = love.graphics.getWidth()
 wH = love.graphics.getHeight()
+love.graphics.setDefaultFilter("nearest", "nearest")
 
 function game:load()
     love.physics.setMeter(64) --the height of a meter our worlds will be 64px
@@ -11,6 +12,8 @@ function game:load()
 
     draggingBall = false
 
+    rangeVal = 0 -- 0 to 1
+
     ball = {}
     ball.x = 0
     ball.y = 0
@@ -18,9 +21,9 @@ function game:load()
     ball.yVel = 0
     ball.vx = 0
     ball.vy = 0
+    ball.img = love.graphics.newImage("assets/ball.png")
     ball.body = love.physics.newBody(world, 400, 300, "dynamic")
-    ball.body:setFixedRotation(true)
-    ball.shape = love.physics.newCircleShape(20)
+    ball.shape = love.physics.newCircleShape(60)
     ball.fixture = love.physics.newFixture(ball.body, ball.shape)
     
     walls = {
@@ -79,14 +82,21 @@ function game:draw()
         love.graphics.rectangle("fill", wx - wall.w/2, wy - wall.h/2, wall.w, wall.h)
     end
     
-    -- Draw ball
-    love.graphics.circle("fill", ball.x, ball.y, ball.shape:getRadius())
+    love.graphics.draw(ball.img, 
+        ball.x,                                    
+        ball.y,                                    
+        ball.body:getAngle(),                      
+        ball.shape:getRadius()*2/ball.img:getWidth(),   
+        ball.shape:getRadius()*2/ball.img:getHeight(), 
+        ball.img:getWidth()/2,                     
+        ball.img:getHeight()/2)                    
 
-    -- Draw drag line if dragging
     if draggingBall then
+        love.graphics.setColor(1 - rangeVal, 0, rangeVal)
         local mx, my = love.mouse.getPosition()
         love.graphics.line(mx, my, ball.x, ball.y)
         love.graphics.circle("line", mx, my, 10)
+        love.graphics.setColor(1, 1, 1) -- Reset color
     end
 end
 
@@ -96,6 +106,8 @@ function game:mousepressed(x, y, button)
         local dx = x - ball.x
         local dy = y - ball.y
         local distance = math.sqrt(dx*dx + dy*dy)
+        rangeVal = math.max(0, math.min(1, distance / 100)) -- Normalize distance to a range of 0 to 1
+        print(rangeVal)
         if distance <= ball.shape:getRadius() then
             draggingBall = true
         end
