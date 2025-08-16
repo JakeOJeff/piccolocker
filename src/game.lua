@@ -13,6 +13,8 @@ function game:load()
     draggingBall = false
     rangeVal = 0
 
+    score = 0
+
     ball = {}
     ball.x = 0
     ball.y = 0
@@ -61,7 +63,7 @@ function game:load()
     -- Create blocks with proper fixture-to-block mapping
     blocks = {}
     fixtureToBlock = {} -- This will map fixtures to block objects
-    
+
     local blockIndex = 1
     for i = 1, 4 do
         for j = 1, 5 do
@@ -69,15 +71,22 @@ function game:load()
                 body = love.physics.newBody(world, j * 200, i * 100, "static"),
                 shape = love.physics.newRectangleShape(185, 75),
                 img = love.graphics.newImage("assets/blocks/" .. i .. ".png"),
-                destroyed = false 
+                destroyed = false,
+                destroyFactor = 0,
+                scoreMult = i * 5
             }
             blocks[blockIndex].fixture = love.physics.newFixture(blocks[blockIndex].body, blocks[blockIndex].shape)
-            
+
             -- Map the fixture to this block for collision detection
             fixtureToBlock[blocks[blockIndex].fixture] = blocks[blockIndex]
-            
+
             blockIndex = blockIndex + 1
         end
+    end
+
+    destroyFactorStages = {}
+    for i = 1, 3 do
+        destroyFactorStages[i] = love.graphics.newImage("assets/blocks/break/" .. (i - 1) .. ".png")
     end
 end
 
@@ -96,13 +105,21 @@ end
 function game:syncPhysics()
     ball.x, ball.y = ball.body:getPosition()
     ball.xVel, ball.yVel = ball.body:getLinearVelocity()
+
+    for i = 1, #blocks do
+        local block = blocks[i]
+        if block and not block.destroyed then
+            block.body:setY(block.body:getY() * math.sin(love.timer.getTime()))
+        end
+    end
 end
 
 function game:draw()
+    love.graphics.setBackgroundColor(0.05, 0.05, 0.05)
     -- Draw walls
     for _, wall in pairs(walls) do
         local wx, wy = wall.body:getPosition()
-        love.graphics.setColor(0.93, 1, 0.90)
+        love.graphics.setColor(0.83, 1, 0.74)
         love.graphics.rectangle("fill", wx - wall.w / 2, wy - wall.h / 2, wall.w, wall.h)
     end
     love.graphics.setColor(1, 1, 1)
@@ -121,13 +138,23 @@ function game:draw()
     for i = 1, #blocks do
         local block = blocks[i]
         if block and not block.destroyed then
-            love.graphics.draw(block.img, 
+            love.graphics.draw(block.img,
                 block.body:getX(),
-                block.body:getY(), 
-                0, 
-                185 / block.img:getWidth(), 
+                block.body:getY(),
+                0,
+                185 / block.img:getWidth(),
                 75 / block.img:getHeight(),
-                block.img:getWidth() / 2, 
+                block.img:getWidth() / 2,
+                block.img:getHeight() / 2)
+
+            print(block.destroyFactor)
+            love.graphics.draw(destroyFactorStages[block.destroyFactor + 1],
+                block.body:getX(),
+                block.body:getY(),
+                0,
+                185 / block.img:getWidth(),
+                75 / block.img:getHeight(),
+                block.img:getWidth() / 2,
                 block.img:getHeight() / 2)
         end
     end
@@ -140,6 +167,8 @@ function game:draw()
         love.graphics.circle("line", mx, my, 10)
         love.graphics.setColor(1, 1, 1)
     end
+
+    love.graphics.print("Score :" .. score, 25, 25)
 end
 
 function game:mousepressed(x, y, button)
@@ -164,11 +193,15 @@ end
 function breakBlock(fixture)
     local block = fixtureToBlock[fixture]
     if block and not block.destroyed then
-        block.destroyed = true
-        block.fixture:destroy()
-        block.body:destroy()
-        fixtureToBlock[fixture] = nil 
-        print("Block broken!")
+        block.destroyFactor = block.destroyFactor + 1
+        score = score + 1.67823 * block.destroyFactor * block.scoreMult
+        if block.destroyFactor > 2 then
+            block.destroyed = true
+            block.fixture:destroy()
+            block.body:destroy()
+            fixtureToBlock[fixture] = nil
+            print("Block broken!")
+        end
     end
 end
 
