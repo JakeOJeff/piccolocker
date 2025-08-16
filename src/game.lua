@@ -106,12 +106,17 @@ function game:syncPhysics()
     ball.x, ball.y = ball.body:getPosition()
     ball.xVel, ball.yVel = ball.body:getLinearVelocity()
 
-    for i = 1, #blocks do
-        local block = blocks[i]
-        if block and not block.destroyed then
-            block.body:setY(block.body:getY() * math.sin(love.timer.getTime()))
-        end
-    end
+    -- for i = 1, #blocks do
+    --     local block = blocks[i]
+    --     if block and not block.destroyed then
+    --         -- Set vertical velocity based on sine wave derivative
+    --         local amplitude = 100
+    --         local frequency = 2
+    --         local velocityY = math.cos(love.timer.getTime() * frequency) * frequency * amplitude
+            
+    --         block.body:setLinearVelocity(0, velocityY)
+    --     end
+    -- end
 end
 
 function game:draw()
