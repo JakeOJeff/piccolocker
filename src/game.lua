@@ -1,4 +1,4 @@
-local game = {}
+game = {}
 
 world = nil
 wW = love.graphics.getWidth()
@@ -6,13 +6,12 @@ wH = love.graphics.getHeight()
 love.graphics.setDefaultFilter("nearest", "nearest")
 
 function game:load()
-    love.physics.setMeter(64) --the height of a meter our worlds will be 64px
-
+    love.physics.setMeter(64)
     world = love.physics.newWorld(0, 2000, false)
+    world:setCallbacks(beginContact, endContact)
 
     draggingBall = false
-
-    rangeVal = 0 -- 0 to 1
+    rangeVal = 0
 
     ball = {}
     ball.x = 0
@@ -28,53 +27,55 @@ function game:load()
 
     walls = {
         left = {
-            body = love.physics.newBody(world, 10, wH / 2, "static"), -- centered at x=10, middle of screen height
-            w    = 20,
-            h    = wH
+            body = love.physics.newBody(world, 10, wH / 2, "static"),
+            w = 20,
+            h = wH
         },
         top = {
-            body = love.physics.newBody(world, wW / 2, 10, "static"), -- centered at middle of screen width, y=10
-            w    = wW,
-            h    = 20
+            body = love.physics.newBody(world, wW / 2, 10, "static"),
+            w = wW,
+            h = 20
         },
         right = {
-            body = love.physics.newBody(world, wW - 10, wH / 2, "static"), -- centered at x=wW-10, middle of screen height
-            w    = 20,
-            h    = wH
+            body = love.physics.newBody(world, wW - 10, wH / 2, "static"),
+            w = 20,
+            h = wH
         },
         bottom = {
-            body = love.physics.newBody(world, wW / 2, wH - 10, "static"), -- centered at middle of screen width, y=wH-10
-            w    = wW,
-            h    = 20
+            body = love.physics.newBody(world, wW / 2, wH - 10, "static"),
+            w = wW,
+            h = 20
         }
     }
 
-    walls.left.shape = love.physics.newRectangleShape(walls.left.w, walls.left.h)
-    walls.left.fixture = love.physics.newFixture(walls.left.body, walls.left.shape)
-    walls.top.shape = love.physics.newRectangleShape(walls.top.w, walls.top.h)
-    walls.top.fixture = love.physics.newFixture(walls.top.body, walls.top.shape)
-    walls.right.shape = love.physics.newRectangleShape(walls.right.w, walls.right.h)
-    walls.right.fixture = love.physics.newFixture(walls.right.body, walls.right.shape)
-    walls.bottom.shape = love.physics.newRectangleShape(walls.bottom.w, walls.bottom.h)
-    walls.bottom.fixture = love.physics.newFixture(walls.bottom.body, walls.bottom.shape)
-
-    ball.fixture:setRestitution(0.5)
+    -- Create wall shapes and fixtures
     for _, wall in pairs(walls) do
+        wall.shape = love.physics.newRectangleShape(wall.w, wall.h)
+        wall.fixture = love.physics.newFixture(wall.body, wall.shape)
         wall.fixture:setRestitution(0.5)
         wall.fixture:setFriction(0.7)
     end
 
-    -- Adding block parts (fixed indexing)
+    ball.fixture:setRestitution(0.5)
+
+    -- Create blocks with proper fixture-to-block mapping
     blocks = {}
+    fixtureToBlock = {} -- This will map fixtures to block objects
+    
     local blockIndex = 1
     for i = 1, 4 do
         for j = 1, 5 do
             blocks[blockIndex] = {
                 body = love.physics.newBody(world, j * 200, i * 100, "static"),
                 shape = love.physics.newRectangleShape(185, 75),
-                img = love.graphics.newImage("assets/blocks/" .. i .. ".png")
+                img = love.graphics.newImage("assets/blocks/" .. i .. ".png"),
+                destroyed = false 
             }
             blocks[blockIndex].fixture = love.physics.newFixture(blocks[blockIndex].body, blocks[blockIndex].shape)
+            
+            -- Map the fixture to this block for collision detection
+            fixtureToBlock[blocks[blockIndex].fixture] = blocks[blockIndex]
+            
             blockIndex = blockIndex + 1
         end
     end
@@ -88,8 +89,7 @@ function game:update(dt)
         local dx = mx - ball.x
         local dy = my - ball.y
         local distance = math.sqrt(dx * dx + dy * dy)
-        rangeVal = math.max(0, math.min(1, distance / 1500)) -- Normalize distance to a range of 0 to 1
-        print(rangeVal)
+        rangeVal = math.max(0, math.min(1, distance / 1500))
     end
 end
 
@@ -99,12 +99,13 @@ function game:syncPhysics()
 end
 
 function game:draw()
-    -- Draw walls with proper center-based positioning
+    -- Draw walls
     for _, wall in pairs(walls) do
         local wx, wy = wall.body:getPosition()
         love.graphics.rectangle("fill", wx - wall.w / 2, wy - wall.h / 2, wall.w, wall.h)
     end
 
+    -- Draw ball
     love.graphics.draw(ball.img,
         ball.x,
         ball.y,
@@ -114,36 +115,33 @@ function game:draw()
         ball.img:getWidth() / 2,
         ball.img:getHeight() / 2)
 
-    -- Fixed block drawing loop
-    local blockIndex = 1
-    for i = 1, 4 do
-        for j = 1, 5 do
-            if blocks[blockIndex] then -- Safety check
-                love.graphics.draw(blocks[blockIndex].img, 
-                    blocks[blockIndex].body:getX(),
-                    blocks[blockIndex].body:getY(), 
-                    0, 
-                    185 / blocks[blockIndex].img:getWidth(), 
-                    75 / blocks[blockIndex].img:getHeight(),
-                    blocks[blockIndex].img:getWidth() / 2, 
-                    blocks[blockIndex].img:getHeight() / 2)
-                blockIndex = blockIndex + 1
-            end
+    -- Draw blocks (only non-destroyed ones)
+    for i = 1, #blocks do
+        local block = blocks[i]
+        if block and not block.destroyed then
+            love.graphics.draw(block.img, 
+                block.body:getX(),
+                block.body:getY(), 
+                0, 
+                185 / block.img:getWidth(), 
+                75 / block.img:getHeight(),
+                block.img:getWidth() / 2, 
+                block.img:getHeight() / 2)
         end
     end
 
+    -- Draw aiming line
     if draggingBall then
         love.graphics.setColor(1 - rangeVal, rangeVal, 0)
         local mx, my = love.mouse.getPosition()
         love.graphics.line(mx, my, ball.x, ball.y)
         love.graphics.circle("line", mx, my, 10)
-        love.graphics.setColor(1, 1, 1) -- Reset color
+        love.graphics.setColor(1, 1, 1)
     end
 end
 
 function game:mousepressed(x, y, button)
     if button == 1 then
-        -- Check if mouse is within ball radius before starting drag
         local dx = x - ball.x
         local dy = y - ball.y
         local distance = math.sqrt(dx * dx + dy * dy)
@@ -159,6 +157,34 @@ function game:mousereleased(x, y, button)
         ball.body:setLinearVelocity((x - ball.x) * -30, (y - ball.y) * -30)
         draggingBall = false
     end
+end
+
+function breakBlock(fixture)
+    local block = fixtureToBlock[fixture]
+    if block and not block.destroyed then
+        block.destroyed = true
+        block.fixture:destroy()
+        block.body:destroy()
+        fixtureToBlock[fixture] = nil 
+        print("Block broken!")
+    end
+end
+
+function beginContact(a, b, collision)
+    if a == ball.fixture then
+        local block = fixtureToBlock[b]
+        if block then
+            breakBlock(b)
+        end
+    elseif b == ball.fixture then
+        local block = fixtureToBlock[a]
+        if block then
+            breakBlock(a)
+        end
+    end
+end
+
+function endContact(a, b, collision)
 end
 
 return game
