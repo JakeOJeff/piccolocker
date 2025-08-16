@@ -12,4 +12,12 @@ function getDistance(x1, y1, x2, y2)
     return math.sqrt(dx * dx + dy * dy)
 end
 
+function beginContact(a, b, collision)
+
+end
+
+function endContact()
+
+end
+
 scenery:hook(love)

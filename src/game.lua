@@ -22,33 +22,33 @@ function game:load()
     ball.vx = 0
     ball.vy = 0
     ball.img = love.graphics.newImage("assets/ball.png")
-    ball.body = love.physics.newBody(world, 400, 300, "dynamic")
+    ball.body = love.physics.newBody(world, 100, 800, "dynamic")
     ball.shape = love.physics.newCircleShape(60)
     ball.fixture = love.physics.newFixture(ball.body, ball.shape)
-    
+
     walls = {
         left = {
-            body  = love.physics.newBody(world, 10, wH/2, "static"), -- centered at x=10, middle of screen height
-            w = 20,
-            h = wH
+            body = love.physics.newBody(world, 10, wH / 2, "static"), -- centered at x=10, middle of screen height
+            w    = 20,
+            h    = wH
         },
         top = {
-            body  = love.physics.newBody(world, wW/2, 10, "static"), -- centered at middle of screen width, y=10
-            w = wW,
-            h = 20
+            body = love.physics.newBody(world, wW / 2, 10, "static"), -- centered at middle of screen width, y=10
+            w    = wW,
+            h    = 20
         },
         right = {
-            body  = love.physics.newBody(world, wW - 10, wH/2, "static"), -- centered at x=wW-10, middle of screen height
-            w = 20,
-            h = wH
+            body = love.physics.newBody(world, wW - 10, wH / 2, "static"), -- centered at x=wW-10, middle of screen height
+            w    = 20,
+            h    = wH
         },
         bottom = {
-            body  = love.physics.newBody(world, wW/2, wH - 10, "static"), -- centered at middle of screen width, y=wH-10
-            w = wW,
-            h = 20
+            body = love.physics.newBody(world, wW / 2, wH - 10, "static"), -- centered at middle of screen width, y=wH-10
+            w    = wW,
+            h    = 20
         }
     }
-    
+
     walls.left.shape = love.physics.newRectangleShape(walls.left.w, walls.left.h)
     walls.left.fixture = love.physics.newFixture(walls.left.body, walls.left.shape)
     walls.top.shape = love.physics.newRectangleShape(walls.top.w, walls.top.h)
@@ -63,6 +63,21 @@ function game:load()
         wall.fixture:setRestitution(0.5)
         wall.fixture:setFriction(0.7)
     end
+
+    -- Adding block parts (fixed indexing)
+    blocks = {}
+    local blockIndex = 1
+    for i = 1, 4 do
+        for j = 1, 5 do
+            blocks[blockIndex] = {
+                body = love.physics.newBody(world, j * 200, i * 100, "static"),
+                shape = love.physics.newRectangleShape(185, 75),
+                img = love.graphics.newImage("assets/blocks/" .. i .. ".png")
+            }
+            blocks[blockIndex].fixture = love.physics.newFixture(blocks[blockIndex].body, blocks[blockIndex].shape)
+            blockIndex = blockIndex + 1
+        end
+    end
 end
 
 function game:update(dt)
@@ -72,7 +87,7 @@ function game:update(dt)
         local mx, my = love.mouse.getPosition()
         local dx = mx - ball.x
         local dy = my - ball.y
-        local distance = math.sqrt(dx*dx + dy*dy)
+        local distance = math.sqrt(dx * dx + dy * dy)
         rangeVal = math.max(0, math.min(1, distance / 1500)) -- Normalize distance to a range of 0 to 1
         print(rangeVal)
     end
@@ -87,17 +102,35 @@ function game:draw()
     -- Draw walls with proper center-based positioning
     for _, wall in pairs(walls) do
         local wx, wy = wall.body:getPosition()
-        love.graphics.rectangle("fill", wx - wall.w/2, wy - wall.h/2, wall.w, wall.h)
+        love.graphics.rectangle("fill", wx - wall.w / 2, wy - wall.h / 2, wall.w, wall.h)
     end
-    
-    love.graphics.draw(ball.img, 
-        ball.x,                                    
-        ball.y,                                    
-        ball.body:getAngle(),                      
-        ball.shape:getRadius()*2/ball.img:getWidth(),   
-        ball.shape:getRadius()*2/ball.img:getHeight(), 
-        ball.img:getWidth()/2,                     
-        ball.img:getHeight()/2)                    
+
+    love.graphics.draw(ball.img,
+        ball.x,
+        ball.y,
+        ball.body:getAngle(),
+        ball.shape:getRadius() * 2 / ball.img:getWidth(),
+        ball.shape:getRadius() * 2 / ball.img:getHeight(),
+        ball.img:getWidth() / 2,
+        ball.img:getHeight() / 2)
+
+    -- Fixed block drawing loop
+    local blockIndex = 1
+    for i = 1, 4 do
+        for j = 1, 5 do
+            if blocks[blockIndex] then -- Safety check
+                love.graphics.draw(blocks[blockIndex].img, 
+                    blocks[blockIndex].body:getX(),
+                    blocks[blockIndex].body:getY(), 
+                    0, 
+                    185 / blocks[blockIndex].img:getWidth(), 
+                    75 / blocks[blockIndex].img:getHeight(),
+                    blocks[blockIndex].img:getWidth() / 2, 
+                    blocks[blockIndex].img:getHeight() / 2)
+                blockIndex = blockIndex + 1
+            end
+        end
+    end
 
     if draggingBall then
         love.graphics.setColor(1 - rangeVal, rangeVal, 0)
@@ -113,7 +146,7 @@ function game:mousepressed(x, y, button)
         -- Check if mouse is within ball radius before starting drag
         local dx = x - ball.x
         local dy = y - ball.y
-        local distance = math.sqrt(dx*dx + dy*dy)
+        local distance = math.sqrt(dx * dx + dy * dy)
 
         if distance <= ball.shape:getRadius() then
             draggingBall = true
