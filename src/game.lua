@@ -9,7 +9,7 @@ function game:load()
 
     world = love.physics.newWorld(0, 2000, false)
 
-
+    draggingBall = false
 
     ball = {}
     ball.x = 0
@@ -53,6 +53,8 @@ function game:load()
 end
 function game:update(dt)
     world:update(dt)
+
+
     self:syncPhysics()
 end
 
@@ -61,21 +63,37 @@ function game:syncPhysics()
     ball.xVel, ball.yVel = ball.body:getLinearVelocity()
 end
 
+
 function game:draw()
     for _, wall in pairs(walls) do
         love.graphics.rectangle("fill", wall.body:getX(), wall.body:getY(), wall.w, wall.h)
     end
     love.graphics.circle("fill", ball.x, ball.y, ball.shape:getRadius())
+
+
+    if draggingBall then
+        local mx, my = love.mouse.getPosition()
+        love.graphics.line(mx, my, ball.x, ball.y)
+        love.graphics.circle("line", mx, my, 10)
+    end
 end
 
 
 function game:mousepressed(x, y, button)
 
     if button == 1 then
-        ball.body:setPosition(x, y)
+        --ball.body:setPosition(x, y)
+        draggingBall = true
     end
 
 end
+function game:mousereleased(x, y, button)
 
+    if button == 1 then
+        --ball.body:setPosition(x, y)
+        draggingBall = false
+    end
+
+end
 
 return game
