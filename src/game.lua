@@ -42,7 +42,7 @@ function game:load()
             h = wH
         },
         bottom = {
-            body = love.physics.newBody(world, wW / 2, wH - 10, "static"),
+            body = love.physics.newBody(world, wW / 2, wH - 200, "static"),
             w = wW,
             h = 20
         }
@@ -89,7 +89,7 @@ function game:update(dt)
         local dx = mx - ball.x
         local dy = my - ball.y
         local distance = math.sqrt(dx * dx + dy * dy)
-        rangeVal = math.max(0, math.min(1, distance / 1500))
+        rangeVal = math.max(0, math.min(1, distance / 250))
     end
 end
 
@@ -102,8 +102,10 @@ function game:draw()
     -- Draw walls
     for _, wall in pairs(walls) do
         local wx, wy = wall.body:getPosition()
+        love.graphics.setColor(0.93, 1, 0.90)
         love.graphics.rectangle("fill", wx - wall.w / 2, wy - wall.h / 2, wall.w, wall.h)
     end
+    love.graphics.setColor(1, 1, 1)
 
     -- Draw ball
     love.graphics.draw(ball.img,
