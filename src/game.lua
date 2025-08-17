@@ -32,8 +32,8 @@ function game:load()
 
     walls = {
         left = {
-            body = love.physics.newBody(world, 10, wH / 2, "static"),
-            w = 20,
+            body = love.physics.newBody(world, 55, wH / 2, "static"),
+            w = 10,
             h = wH
         },
         top = {
@@ -42,8 +42,8 @@ function game:load()
             h = 20
         },
         right = {
-            body = love.physics.newBody(world, wW - 10, wH / 2, "static"),
-            w = 20,
+            body = love.physics.newBody(world, wW - 55, wH / 2, "static"),
+            w = 10,
             h = wH
         },
         bottom = {
